@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Creador de Flores 🌸</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=IM+Fell+English:ital@0;1&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1a1208;--paper:#f5f0e8;--paper-dark:#e8e0d0;--mid:#5a4a30;--faint:#c8bfaa;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{background:var(--paper);color:var(--ink);font-family:'Cormorant Garamond',serif;height:100%;width:100%;overflow:hidden;position:fixed;}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.35;}
+
+.screen{position:fixed;top:0;left:0;right:0;bottom:56px;display:none;opacity:0;transition:opacity .6s ease;overflow:hidden;}
+.screen.active{display:flex;opacity:1;}
+
+.nav-bar{position:fixed;bottom:0;left:0;right:0;height:56px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--paper);border-top:1px solid var(--faint);z-index:5000;opacity:0;transition:opacity .8s ease 1.4s;padding:0 10px;}
+.nav-bar.visible{opacity:1;}
+.nav-btn{background:transparent;border:1px solid var(--ink);color:var(--ink);font-family:'Cormorant Garamond',serif;font-size:clamp(9px,2.5vw,12px);letter-spacing:1.5px;text-transform:uppercase;padding:7px clamp(8px,3vw,20px);cursor:pointer;transition:all .25s;position:relative;overflow:hidden;white-space:nowrap;flex-shrink:0;}
+.nav-btn::before{content:'';position:absolute;inset:0;background:var(--ink);transform:translateY(101%);transition:transform .25s ease;}
+.nav-btn:hover::before,.nav-btn:active::before{transform:translateY(0);}
+.nav-btn:hover,.nav-btn:active{color:var(--paper);}
+.nav-btn span{position:relative;z-index:1;}
+.nav-btn.active-nav{background:var(--ink);color:var(--paper);}
+
+/* HOME — flexbox centra todo, sin position absolute en el texto */
+#home{
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+}
+
+.home-svg-left{
+  position:absolute;
+  left:0;
+  top:50%;
+  transform:translateY(-50%);
+  width:clamp(110px,25vw,300px);
+  opacity:0;
+  animation:fadeInL 1.4s ease .4s forwards;
+  pointer-events:none;
+}
+.home-svg-right{
+  position:absolute;
+  right:0;
+  top:50%;
+  transform:translateY(-50%) scaleX(-1);
+  width:clamp(90px,21vw,260px);
+  opacity:0;
+  animation:fadeInR 1.4s ease .6s forwards;
+  pointer-events:none;
+}
+@keyframes fadeInL{
+  from{opacity:0;transform:translateY(-50%) translateX(-20px)}
+  to{opacity:.72;transform:translateY(-50%) translateX(0)}
+}
+@keyframes fadeInR{
+  from{opacity:0;transform:translateY(-50%) scaleX(-1) translateX(-20px)}
+  to{opacity:.58;transform:translateY(-50%) scaleX(-1) translateX(0)}
+}
+
+/* TEXTO CENTRAL — z-index sobre flores, animado con solo opacity+translateY */
+.home-center{
+  position:relative;
+  z-index:10;
+  text-align:center;
+  padding:0 clamp(105px,27vw,320px);
+  width:100%;
+  opacity:0;
+  animation:fadeUp 1.1s ease 1s forwards;
+}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(18px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+.hero-title{font-family:'IM Fell English',serif;font-size:clamp(46px,13vw,114px);font-weight:400;line-height:.88;letter-spacing:-1px;}
+.hero-title .for-you{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(12px,2.4vw,20px);letter-spacing:5px;display:block;margin-bottom:10px;color:var(--mid);}
+.home-subtitle{font-style:italic;font-size:clamp(11px,1.8vw,16px);color:var(--mid);letter-spacing:3px;margin-top:16px;}
+.divider-line{width:90px;height:1px;background:var(--ink);margin:16px auto;opacity:.35;}
+.petal{position:absolute;opacity:0;animation:floatPetal linear infinite;pointer-events:none;}
+@keyframes floatPetal{0%{transform:translateY(110vh) rotate(0deg);opacity:0}8%{opacity:.13}92%{opacity:.08}100%{transform:translateY(-10vh) rotate(380deg);opacity:0}}
+
+/* GAME */
+#game{flex-direction:column;align-items:center;justify-content:center;padding:8px 14px 4px;}
+.game-title{font-family:'IM Fell English',serif;font-size:clamp(20px,5vw,30px);text-align:center;margin-bottom:4px;}
+.game-subtitle{font-style:italic;color:var(--mid);font-size:clamp(10px,2.5vw,13px);letter-spacing:2px;margin-bottom:12px;text-align:center;}
+.game-area{width:min(460px,92vw);height:min(340px,42vh);border:1px solid var(--faint);position:relative;background:var(--paper-dark);overflow:hidden;cursor:crosshair;touch-action:none;}
+#gameCanvas{position:absolute;inset:0;width:100%;height:100%;}
+.game-score{display:flex;justify-content:space-between;width:min(460px,92vw);margin-top:8px;font-size:clamp(10px,2.4vw,12px);letter-spacing:2px;color:var(--mid);text-transform:uppercase;}
+.game-msg{font-style:italic;font-size:clamp(10px,2.4vw,12px);color:var(--mid);text-align:center;margin-top:6px;min-height:16px;letter-spacing:1px;}
+.start-btn{margin-top:10px;background:transparent;border:1px solid var(--ink);color:var(--ink);font-family:'Cormorant Garamond',serif;font-size:clamp(10px,2.4vw,13px);letter-spacing:3px;text-transform:uppercase;padding:8px 26px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;}
+.start-btn::before{content:'';position:absolute;inset:0;background:var(--ink);transform:scaleX(0);transition:transform .25s;}
+.start-btn:hover::before,.start-btn:active::before{transform:scaleX(1);}
+.start-btn:hover,.start-btn:active{color:var(--paper);}
+.start-btn span{position:relative;z-index:1;}
+
+/* CREATOR */
+#creator{flex-direction:row;overflow:hidden;}
+.creator-layout{display:flex;width:100%;height:100%;overflow:hidden;}
+.creator-sidebar{width:205px;min-width:205px;border-right:1px solid var(--faint);padding:14px 11px;overflow-y:auto;overflow-x:hidden;background:var(--paper);flex-shrink:0;}
+.creator-sidebar::-webkit-scrollbar{width:3px;}
+.creator-sidebar::-webkit-scrollbar-thumb{background:var(--faint);}
+.sidebar-title{font-family:'IM Fell English',serif;font-size:16px;margin-bottom:14px;}
+.tool-section{margin-bottom:14px;}
+.tool-label{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:var(--mid);margin-bottom:7px;display:block;border-bottom:1px solid var(--faint);padding-bottom:4px;}
+.tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.tool-btn{background:transparent;border:1px solid var(--faint);color:var(--ink);font-family:'Cormorant Garamond',serif;font-size:clamp(9px,1.8vw,11px);padding:6px 3px;cursor:pointer;transition:all .18s;text-align:center;}
+.tool-btn:hover,.tool-btn.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+.tool-btn .icon{font-size:13px;display:block;margin-bottom:1px;}
+.slider-row{margin-bottom:9px;}
+.slider-row label{font-size:8px;letter-spacing:1px;color:var(--mid);display:flex;justify-content:space-between;margin-bottom:3px;}
+.slider-row input[type=range]{width:100%;-webkit-appearance:none;height:1px;background:var(--faint);outline:none;cursor:pointer;}
+.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;background:var(--ink);border-radius:50%;cursor:pointer;}
+.color-swatches{display:flex;flex-wrap:wrap;gap:5px;}
+.swatch{width:22px;height:22px;border:2px solid transparent;cursor:pointer;transition:all .15s;}
+.swatch:hover,.swatch.active{border-color:var(--ink);transform:scale(1.15);}
+.creator-canvas-wrap{flex:1;position:relative;background:var(--paper-dark);display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0;}
+#flowerCanvas{position:absolute;inset:0;width:100%;height:100%;}
+.canvas-hint{position:absolute;bottom:66px;left:50%;transform:translateX(-50%);font-style:italic;font-size:clamp(8px,1.8vw,11px);color:var(--mid);letter-spacing:2px;text-align:center;pointer-events:none;opacity:.6;white-space:nowrap;}
+.creator-actions{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:7px;z-index:10;}
+.action-btn{background:var(--paper);border:1px solid var(--ink);color:var(--ink);font-family:'Cormorant Garamond',serif;font-size:clamp(9px,2vw,12px);letter-spacing:2px;text-transform:uppercase;padding:6px clamp(8px,2.5vw,16px);cursor:pointer;transition:all .25s;white-space:nowrap;}
+.action-btn:hover,.action-btn:active{background:var(--ink);color:var(--paper);}
+.scenario-dawn{background:radial-gradient(ellipse at 50% 80%,#d4c8b0,#e8e0d0 60%,#f0e8d8);}
+.scenario-night{background:radial-gradient(ellipse at 50% 20%,#2a2218,#1a1208 70%);}
+.scenario-mist{background:linear-gradient(180deg,#e5ddd0,#f0ebe0 40%,#d8d0c0);}
+.scenario-garden{background:repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(26,18,8,.02) 40px,rgba(26,18,8,.02) 41px),var(--paper-dark);}
+.scenario-night .canvas-hint{color:#8a7a60;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,18,8,.45);z-index:8000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-box{background:var(--paper);border:1px solid var(--faint);padding:36px 32px;text-align:center;max-width:320px;width:90%;transform:translateY(12px);transition:transform .3s;}
+.modal-overlay.open .modal-box{transform:translateY(0);}
+.modal-title{font-family:'IM Fell English',serif;font-size:22px;margin-bottom:6px;}
+.modal-sub{font-style:italic;font-size:12px;color:var(--mid);letter-spacing:2px;margin-bottom:22px;}
+.modal-input{width:100%;background:transparent;border:none;border-bottom:1px solid var(--faint);color:var(--ink);font-family:'Dancing Script',cursive;font-size:28px;text-align:center;outline:none;padding:6px 0 8px;letter-spacing:1px;}
+.modal-input::placeholder{color:var(--faint);font-size:20px;}
+.modal-actions{display:flex;gap:10px;justify-content:center;margin-top:24px;}
+.modal-btn{background:transparent;border:1px solid var(--ink);color:var(--ink);font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:8px 22px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;}
+.modal-btn::before{content:'';position:absolute;inset:0;background:var(--ink);transform:scaleX(0);transition:transform .25s;}
+.modal-btn:hover::before{transform:scaleX(1);}
+.modal-btn:hover{color:var(--paper);}
+.modal-btn span{position:relative;z-index:1;}
+.modal-btn.primary{background:var(--ink);color:var(--paper);}
+.modal-btn.primary::before{background:var(--mid);}
+
+@media(max-width:620px){
+  .creator-layout{flex-direction:column;}
+  .creator-sidebar{width:100%;min-width:unset;border-right:none;border-bottom:1px solid var(--faint);padding:8px 10px;display:flex;flex-wrap:wrap;gap:8px;max-height:44vh;overflow-y:auto;}
+  .tool-section{min-width:130px;flex:1;margin-bottom:0;}
+  .sidebar-title{display:none;}
+}
+@media(max-width:480px){
+  .home-center{padding:0 clamp(80px,23vw,140px);}
+  .game-area{height:min(270px,37vh);}
+}
+
+#loading{position:fixed;inset:0;background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10000;transition:opacity .8s ease;}
+.loading-flower{animation:spinSlow 4s linear infinite;opacity:.45;}
+@keyframes spinSlow{to{transform:rotate(360deg)}}
+.loading-text{font-family:'IM Fell English',serif;font-style:italic;font-size:15px;letter-spacing:5px;color:var(--mid);margin-top:18px;}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <svg class="loading-flower" width="70" height="70" viewBox="0 0 80 80">
+    <g transform="translate(40,40)">
+      <ellipse rx="7" ry="17" fill="none" stroke="#1a1208" stroke-width="1.1" transform="rotate(0)"/>
+      <ellipse rx="7" ry="17" fill="none" stroke="#1a1208" stroke-width="1.1" transform="rotate(45)"/>
+      <ellipse rx="7" ry="17" fill="none" stroke="#1a1208" stroke-width="1.1" transform="rotate(90)"/>
+      <ellipse rx="7" ry="17" fill="none" stroke="#1a1208" stroke-width="1.1" transform="rotate(135)"/>
+      <circle r="6" fill="none" stroke="#1a1208" stroke-width="1.4"/>
+    </g>
+  </svg>
+  <div class="loading-text">dibujando...</div>
+</div>
+
+<div class="modal-overlay" id="signModal">
+  <div class="modal-box">
+    <div class="modal-title">✦ Tu Autógrafo</div>
+    <div class="modal-sub">escribe tu nombre para firmar la flor</div>
+    <input class="modal-input" id="signInput" type="text" placeholder="tu nombre..." maxlength="30" autocomplete="off">
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="closeModal()"><span>Cancelar</span></button>
+      <button class="modal-btn primary" onclick="confirmSave()"><span>Guardar ✦</span></button>
+    </div>
+  </div>
+</div>
+
+<nav class="nav-bar" id="navBar">
+  <button class="nav-btn active-nav" onclick="goTo('home')" id="btn-home"><span>✦ Inicio</span></button>
+  <button class="nav-btn" onclick="goTo('game')" id="btn-game"><span>✦ Juego</span></button>
+  <button class="nav-btn" onclick="goTo('creator')" id="btn-creator"><span>✦ Crear Flor</span></button>
+</nav>
+
+<!-- HOME -->
+<div class="screen active" id="home">
+  <svg class="home-svg-left" viewBox="0 0 320 580" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1a1208" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M160 570 C155 510 148 450 152 390 C156 330 168 280 158 220 C148 160 134 118 144 68"/>
+    <path d="M158 168 C174 186 196 202 188 222 C180 242 161 257 158 274 C155 257 136 242 128 222 C120 202 142 186 158 168"/>
+    <path d="M106 222 C123 207 138 187 158 168 C156 188 146 205 128 222 C146 239 156 256 158 274 C138 258 123 238 106 222"/>
+    <path d="M210 222 C193 207 178 187 158 168 C160 188 170 205 188 222 C170 239 160 256 158 274 C178 258 193 238 210 222"/>
+    <path d="M128 174 C143 190 150 206 158 222 C153 206 143 190 128 174" stroke-width="0.6" opacity="0.5"/>
+    <path d="M188 174 C173 190 166 206 158 222 C163 206 173 190 188 174" stroke-width="0.6" opacity="0.5"/>
+    <circle cx="158" cy="222" r="14" stroke-width="0.9"/>
+    <circle cx="158" cy="222" r="6" stroke-width="0.7"/>
+    <path d="M144 334 C114 312 96 280 106 258 C114 238 138 244 144 334"/>
+    <path d="M144 334 C128 304 124 274 126 258"/><line x1="126" y1="258" x2="144" y2="334" stroke-width="0.8"/>
+    <path d="M168 355 C198 333 222 303 215 280 C208 258 183 264 168 355"/>
+    <path d="M168 355 C188 322 194 290 190 280"/><line x1="190" y1="280" x2="168" y2="355" stroke-width="0.8"/>
+    <path d="M150 92 C143 78 140 62 148 50 C154 61 158 76 150 92"/>
+    <path d="M150 92 C157 78 160 62 154 50 C148 61 144 76 150 92"/>
+    <path d="M140 82 C128 72 122 56 130 50 C138 57 140 70 140 82"/>
+    <path d="M166 78 C178 68 184 52 176 46 C168 53 166 66 166 78"/>
+    <path d="M148 434 C141 422 138 406 146 394 C152 405 155 420 148 434"/>
+    <path d="M148 434 C155 422 158 406 152 394 C146 405 142 420 148 434"/>
+    <path d="M156 394 C142 384 129 368 124 352" stroke-width="0.9"/>
+    <path d="M158 474 C144 462 132 450 130 437" stroke-width="0.9"/>
+  </svg>
+
+  <svg class="home-svg-right" viewBox="0 0 280 500" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#1a1208" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M140 485 C138 425 135 362 140 302 C145 242 150 192 145 132"/>
+    <path d="M158 310 C190 285 216 250 208 225 C200 200 174 208 158 310"/>
+    <path d="M158 310 C184 274 194 242 190 225"/><line x1="190" y1="225" x2="158" y2="310" stroke-width="0.8"/>
+    <path d="M122 372 C90 347 68 310 80 285 C90 262 114 270 122 372"/>
+    <path d="M122 372 C98 336 90 302 94 285"/><line x1="94" y1="285" x2="122" y2="372" stroke-width="0.8"/>
+    <path d="M142 192 C130 176 122 158 124 142"/>
+    <ellipse cx="122" cy="112" rx="5" ry="11" transform="rotate(-15,122,112)" stroke-width="1"/>
+    <path d="M142 192 C154 174 162 156 158 140"/>
+    <ellipse cx="160" cy="132" rx="5" ry="11" transform="rotate(20,160,132)" stroke-width="1"/>
+    <path d="M142 250 C154 238 164 224 160 210"/>
+    <ellipse cx="162" cy="202" rx="5" ry="10" transform="rotate(25,162,202)" stroke-width="1"/>
+    <path d="M74 142 C82 136 90 138 94 144 C98 138 106 136 112 142" stroke-width="1.2"/>
+    <path d="M93 144 C93 154 94 162 96 167" stroke-width="0.8"/>
+  </svg>
+
+  <div class="home-center">
+    <div class="hero-title">
+      <span class="for-you">un cuaderno de bocetos</span>
+      Flores
+    </div>
+    <div class="divider-line"></div>
+    <p class="home-subtitle">dibuja · juega · crea</p>
+  </div>
+  <div id="petals"></div>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="game">
+  <h2 class="game-title">✦ Recoge las Flores ✦</h2>
+  <p class="game-subtitle">atrapa cada pétalo antes de que caiga</p>
+  <div class="game-area" id="gameArea"><canvas id="gameCanvas"></canvas></div>
+  <div class="game-score">
+    <span>Flores: <strong id="scoreVal">0</strong></span>
+    <span>Tiempo: <strong id="timerVal">30</strong>s</span>
+    <span>Mejor: <strong id="bestVal">0</strong></span>
+  </div>
+  <div class="game-msg" id="gameMsg">Haz click para comenzar</div>
+  <button class="start-btn" id="startBtn" onclick="startGame()"><span>Comenzar</span></button>
+</div>
+
+<!-- CREATOR -->
+<div class="screen" id="creator">
+  <div class="creator-layout">
+    <div class="creator-sidebar">
+      <div class="sidebar-title">Crear Flor</div>
+      <div class="tool-section">
+        <span class="tool-label">Tipo de Flor</span>
+        <div class="tool-grid">
+          <button class="tool-btn active" onclick="setFlowerType('rose',this)"><span class="icon">🌹</span>Rosa</button>
+          <button class="tool-btn" onclick="setFlowerType('daisy',this)"><span class="icon">🌼</span>Margarita</button>
+          <button class="tool-btn" onclick="setFlowerType('lotus',this)"><span class="icon">🪷</span>Loto</button>
+          <button class="tool-btn" onclick="setFlowerType('tulip',this)"><span class="icon">🌷</span>Tulipán</button>
+          <button class="tool-btn" onclick="setFlowerType('wild',this)"><span class="icon">✿</span>Silvestre</button>
+          <button class="tool-btn" onclick="setFlowerType('cherry',this)"><span class="icon">🌸</span>Cerezo</button>
+        </div>
+      </div>
+      <div class="tool-section">
+        <span class="tool-label">Pétalos</span>
+        <div class="slider-row"><label><span>Cantidad</span><span id="petalCountVal">5</span></label><input type="range" min="3" max="12" value="5" oninput="setPetalCount(this.value)"></div>
+        <div class="slider-row"><label><span>Tamaño</span><span id="petalSizeVal">60</span></label><input type="range" min="20" max="120" value="60" oninput="setPetalSize(this.value)"></div>
+        <div class="slider-row"><label><span>Apertura</span><span id="openVal">50</span></label><input type="range" min="0" max="100" value="50" oninput="setOpen(this.value)"></div>
+        <div class="slider-row"><label><span>Curva</span><span id="curveVal">40</span></label><input type="range" min="0" max="100" value="40" oninput="setCurve(this.value)"></div>
+      </div>
+      <div class="tool-section">
+        <span class="tool-label">Color</span>
+        <div class="color-swatches">
+          <div class="swatch active" style="background:#1a1208" onclick="setColor('#1a1208',this)"></div>
+          <div class="swatch" style="background:#3d2b1f" onclick="setColor('#3d2b1f',this)"></div>
+          <div class="swatch" style="background:#5a3030" onclick="setColor('#5a3030',this)"></div>
+          <div class="swatch" style="background:#7a1a1a" onclick="setColor('#7a1a1a',this)"></div>
+          <div class="swatch" style="background:#2a3a2a" onclick="setColor('#2a3a2a',this)"></div>
+          <div class="swatch" style="background:#4a4a2a" onclick="setColor('#4a4a2a',this)"></div>
+          <div class="swatch" style="background:#c8bfaa" onclick="setColor('#c8bfaa',this)"></div>
+          <div class="swatch" style="background:#8a7a60" onclick="setColor('#8a7a60',this)"></div>
+          <div class="swatch" style="background:#f5f0e8" onclick="setColor('#f5f0e8',this)"></div>
+          <div class="swatch" style="background:#000000" onclick="setColor('#000000',this)"></div>
+        </div>
+      </div>
+      <div class="tool-section">
+        <span class="tool-label">Escenario</span>
+        <div class="tool-grid">
+          <button class="tool-btn" onclick="setScenario('scenario-garden',this)"><span class="icon">🌿</span>Jardín</button>
+          <button class="tool-btn" onclick="setScenario('scenario-dawn',this)"><span class="icon">🌅</span>Amanecer</button>
+          <button class="tool-btn active" onclick="setScenario('',this)"><span class="icon">📄</span>Papel</button>
+          <button class="tool-btn" onclick="setScenario('scenario-mist',this)"><span class="icon">🌫</span>Niebla</button>
+        </div>
+      </div>
+      <div class="tool-section">
+        <span class="tool-label">Tallo</span>
+        <div class="slider-row"><label><span>Altura</span><span id="stemHeightVal">80</span></label><input type="range" min="20" max="200" value="80" oninput="setStemHeight(this.value)"></div>
+        <div class="slider-row"><label><span>Curvatura</span><span id="stemCurveVal">20</span></label><input type="range" min="0" max="80" value="20" oninput="setStemCurve(this.value)"></div>
+      </div>
+      <div class="tool-section">
+        <span class="tool-label">Efecto</span>
+        <div class="tool-grid">
+          <button class="tool-btn active" onclick="setEffect('sketch',this)"><span class="icon">✏️</span>Boceto</button>
+          <button class="tool-btn" onclick="setEffect('bold',this)"><span class="icon">◼</span>Negrita</button>
+          <button class="tool-btn" onclick="setEffect('dotted',this)"><span class="icon">·</span>Puntos</button>
+          <button class="tool-btn" onclick="setEffect('filled',this)"><span class="icon">▪</span>Relleno</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="creator-canvas-wrap" id="canvasWrap">
+      <canvas id="flowerCanvas"></canvas>
+      <div class="canvas-hint">✦ usa los controles para dar vida a tu flor ✦</div>
+      <div class="creator-actions">
+        <button class="action-btn" onclick="randomizeFlower()">Aleatorio</button>
+        <button class="action-btn" onclick="openSaveModal()">Guardar ✦</button>
+        <button class="action-btn" onclick="clearCanvas()">Limpiar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(s=>{s.classList.remove('active');s.style.opacity='0';setTimeout(()=>{if(!s.classList.contains('active'))s.style.display='none';},400);});
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active-nav'));
+  setTimeout(()=>{const sc=document.getElementById(id);sc.style.display='flex';requestAnimationFrame(()=>{sc.classList.add('active');sc.style.opacity='1';});document.getElementById('btn-'+id).classList.add('active-nav');if(id==='creator')setTimeout(initCreatorCanvas,120);},280);
+}
+
+window.addEventListener('load',()=>{setTimeout(()=>{const l=document.getElementById('loading');l.style.opacity='0';setTimeout(()=>l.style.display='none',800);document.getElementById('navBar').classList.add('visible');createPetals();},1600);});
+
+function createPetals(){
+  const c=document.getElementById('petals');
+  for(let i=0;i<10;i++){
+    const p=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    p.setAttribute('viewBox','0 0 20 30');p.setAttribute('width','10');p.setAttribute('height','16');
+    p.innerHTML='<ellipse cx="10" cy="15" rx="7" ry="13" fill="none" stroke="#1a1208" stroke-width="0.9"/>';
+    p.style.cssText=`position:absolute;left:${Math.random()*100}%;animation:floatPetal ${9+Math.random()*10}s ${Math.random()*9}s linear infinite;transform:rotate(${Math.random()*360}deg);`;
+    p.classList.add('petal');c.appendChild(p);
+  }
+}
+
+let gameRunning=false,score=0,best=0,timeLeft=30,gameInterval,timerInterval;
+const flowers=[];
+function startGame(){
+  const area=document.getElementById('gameArea'),canvas=document.getElementById('gameCanvas');
+  canvas.width=area.offsetWidth;canvas.height=area.offsetHeight;
+  const ctx=canvas.getContext('2d');
+  score=0;timeLeft=30;flowers.length=0;
+  document.getElementById('scoreVal').textContent=0;
+  document.getElementById('timerVal').textContent=30;
+  document.getElementById('gameMsg').textContent='';
+  document.getElementById('startBtn').style.display='none';
+  gameRunning=true;
+  clearInterval(gameInterval);clearInterval(timerInterval);
+  gameInterval=setInterval(()=>{
+    if(!gameRunning)return;
+    flowers.push({x:30+Math.random()*(canvas.width-60),y:-30,vy:1.5+Math.random()*2,r:16+Math.random()*14,petals:4+Math.floor(Math.random()*5),rot:Math.random()*Math.PI*2,rotV:(Math.random()-.5)*.04,alive:true});
+  },900);
+  timerInterval=setInterval(()=>{timeLeft--;document.getElementById('timerVal').textContent=timeLeft;if(timeLeft<=0)endGame();},1000);
+  function getPos(e){const rect=canvas.getBoundingClientRect(),t=e.changedTouches?e.changedTouches[0]:e;return{x:(t.clientX-rect.left)*canvas.width/rect.width,y:(t.clientY-rect.top)*canvas.height/rect.height};}
+  function handleHit(e){
+    e.preventDefault();if(!gameRunning)return;
+    const pos=getPos(e);
+    flowers.forEach(f=>{if(!f.alive)return;if(Math.hypot(pos.x-f.x,pos.y-f.y)<f.r+12){f.alive=false;score++;if(score>best)best=score;document.getElementById('scoreVal').textContent=score;document.getElementById('bestVal').textContent=best;spawnStar(ctx,f.x,f.y);}});
+  }
+  canvas.onclick=handleHit;canvas.ontouchend=handleHit;
+  (function loop(){
+    if(!gameRunning)return;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.strokeStyle='rgba(26,18,8,0.05)';ctx.lineWidth=0.5;
+    for(let x=0;x<canvas.width;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();}
+    for(let y=0;y<canvas.height;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
+    flowers.forEach(f=>{
+      if(!f.alive)return;f.y+=f.vy;f.rot+=f.rotV;
+      if(f.y>canvas.height+40){f.alive=false;return;}
+      ctx.save();ctx.translate(f.x,f.y);ctx.rotate(f.rot);ctx.strokeStyle='#1a1208';ctx.lineWidth=1.2;
+      for(let i=0;i<f.petals;i++){ctx.save();ctx.rotate((i/f.petals)*Math.PI*2);ctx.beginPath();ctx.ellipse(0,-f.r*.7,f.r*.33,f.r*.62,0,0,Math.PI*2);ctx.stroke();ctx.restore();}
+      ctx.beginPath();ctx.arc(0,0,f.r*.24,0,Math.PI*2);ctx.stroke();ctx.restore();
+    });
+    requestAnimationFrame(loop);
+  })();
+}
+const stars=[];
+function spawnStar(ctx,x,y){stars.push({x,y,alpha:1,vy:-1.8});(function draw(){stars.forEach((s,i)=>{s.y+=s.vy;s.alpha-=0.028;ctx.save();ctx.globalAlpha=Math.max(0,s.alpha);ctx.fillStyle='#1a1208';ctx.font='18px serif';ctx.fillText('✦',s.x-7,s.y);ctx.restore();if(s.alpha<=0)stars.splice(i,1);});if(stars.length)requestAnimationFrame(draw);})();}
+function endGame(){
+  gameRunning=false;clearInterval(gameInterval);clearInterval(timerInterval);
+  document.getElementById('gameMsg').textContent=score>10?`¡${score} flores recogidas! 🌸`:score>5?`${score} flores recogidas ✦`:`${score} flores... ¡sigue intentando!`;
+  const btn=document.getElementById('startBtn');btn.style.display='inline-block';btn.querySelector('span').textContent='Jugar de nuevo';
+}
+
+let fs={type:'rose',petals:5,size:60,open:50,curve:40,color:'#1a1208',effect:'sketch',stemH:80,stemC:20};
+
+function initCreatorCanvas(){
+  const wrap=document.getElementById('canvasWrap'),canvas=document.getElementById('flowerCanvas');
+  canvas.width=wrap.offsetWidth;canvas.height=wrap.offsetHeight;drawFlower();
+}
+
+function drawFlower(signName){
+  const canvas=document.getElementById('flowerCanvas');if(!canvas||!canvas.width)return;
+  const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height,cx=W/2,cy=H/2-fs.stemH/3;
+  ctx.clearRect(0,0,W,H);
+  if(fs.effect==='sketch'){ctx.save();ctx.globalAlpha=0.022;for(let i=0;i<60;i++){ctx.beginPath();ctx.moveTo(Math.random()*W,Math.random()*H);ctx.lineTo(Math.random()*W,Math.random()*H);ctx.strokeStyle='#1a1208';ctx.lineWidth=0.3;ctx.stroke();}ctx.restore();}
+  const c=fs.color,lw=fs.effect==='bold'?2.6:1.3;
+  ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=lw;
+  ctx.beginPath();ctx.moveTo(cx,cy+18);ctx.quadraticCurveTo(cx+fs.stemC,cy+fs.stemH*.6,cx-8,cy+fs.stemH);ctx.stroke();
+  drawLeaf(ctx,cx+fs.stemC*.28,cy+fs.stemH*.38,-30,fs.stemH*.24);
+  drawLeaf(ctx,cx-4,cy+fs.stemH*.64,22,fs.stemH*.19);
+  for(let i=0;i<fs.petals;i++){
+    const angle=(i/fs.petals)*Math.PI*2-Math.PI/2;
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(angle);
+    const pw=fs.size*.35,ph=fs.size*(.6+fs.open/100*.4),sp=fs.size*fs.open/100*.3,cf=fs.curve/100;
+    switch(fs.type){
+      case'rose':ctx.beginPath();ctx.moveTo(0,0);ctx.bezierCurveTo(-pw*(1+cf),-ph*.4,-sp,-ph*.9,0,-ph);ctx.bezierCurveTo(sp,-ph*.9,pw*(1+cf),-ph*.4,0,0);fs.effect==='filled'?ctx.fill():ctx.stroke();if(fs.effect==='sketch'){ctx.globalAlpha=.28;ctx.beginPath();ctx.moveTo(0,-ph*.14);ctx.lineTo(0,-ph*.84);ctx.stroke();ctx.globalAlpha=1;}break;
+      case'daisy':ctx.beginPath();ctx.ellipse(0,-ph*.52,pw*.52,ph*.52,0,0,Math.PI*2);fs.effect==='filled'?ctx.fill():ctx.stroke();break;
+      case'lotus':ctx.beginPath();ctx.moveTo(0,0);ctx.bezierCurveTo(-pw*.8,-ph*.3,-pw*.88,-ph*.7,0,-ph);ctx.bezierCurveTo(pw*.88,-ph*.7,pw*.8,-ph*.3,0,0);fs.effect==='filled'?ctx.fill():ctx.stroke();break;
+      case'tulip':ctx.beginPath();ctx.moveTo(-pw*.5,0);ctx.bezierCurveTo(-pw*(1+cf*.5),-ph*.5,-pw*.78,-ph*.9,0,-ph);ctx.bezierCurveTo(pw*.78,-ph*.9,pw*(1+cf*.5),-ph*.5,pw*.5,0);ctx.closePath();fs.effect==='filled'?ctx.fill():ctx.stroke();break;
+      case'wild':ctx.beginPath();ctx.ellipse(0,-ph*.5,pw*.4*(1+cf*.5),ph*.5,0,0,Math.PI*2);fs.effect==='filled'?ctx.fill():ctx.stroke();if(fs.effect==='sketch'){ctx.globalAlpha=.26;for(let j=0;j<3;j++){ctx.beginPath();ctx.moveTo(0,-ph*.14);ctx.lineTo((j-1)*pw*.18,-ph*.82);ctx.stroke();}ctx.globalAlpha=1;}break;
+      case'cherry':ctx.beginPath();ctx.moveTo(0,-fs.size*.08);ctx.bezierCurveTo(-pw*1.2,-ph*.32,-pw*.6,-ph*.88,0,-ph*.94);ctx.bezierCurveTo(pw*.6,-ph*.88,pw*1.2,-ph*.32,0,-fs.size*.08);fs.effect==='filled'?ctx.fill():ctx.stroke();break;
+    }
+    if(fs.effect==='dotted'){ctx.globalAlpha=.55;for(let d=0;d<28;d++){const tx=(Math.random()-.5)*pw*1.4,ty=-Math.random()*ph;ctx.beginPath();ctx.arc(tx,ty,.85,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
+    ctx.restore();
+  }
+  const cr=fs.size*.15;
+  ctx.beginPath();ctx.arc(cx,cy,cr,0,Math.PI*2);fs.effect==='filled'?ctx.fill():ctx.stroke();
+  if(fs.effect!=='filled'){ctx.globalAlpha=.42;for(let d=0;d<10;d++){const a=(d/10)*Math.PI*2;ctx.beginPath();ctx.arc(cx+Math.cos(a)*cr*.6,cy+Math.sin(a)*cr*.6,.9,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
+  if(signName){
+    drawSignature(ctx,signName,cx,H-18,c,false);
+  } else {
+    ctx.save();ctx.globalAlpha=.07;ctx.font=`italic ${Math.max(13,fs.size*.28)}px 'IM Fell English',serif`;ctx.fillStyle=c;ctx.textAlign='center';ctx.fillText('boceto',cx,H-22);ctx.restore();
+  }
+}
+
+function drawSignature(ctx,name,cx,y,color,bold){
+  ctx.save();ctx.textAlign='center';ctx.fillStyle=color;
+  const lineW=Math.min(ctx.canvas.width*.35,160);
+  ctx.globalAlpha=bold?.4:.25;ctx.strokeStyle=color;ctx.lineWidth=0.8;
+  ctx.beginPath();ctx.moveTo(cx-lineW/2,y-30);ctx.lineTo(cx+lineW/2,y-30);ctx.stroke();
+  ctx.globalAlpha=bold?.82:.55;
+  const fontSize=bold?Math.min(ctx.canvas.width*.08,38):Math.min(ctx.canvas.width*.07,32);
+  ctx.font=`${fontSize}px 'Dancing Script',cursive`;
+  ctx.fillText(name,cx,y-6);ctx.restore();
+}
+
+function drawLeaf(ctx,x,y,angleDeg,size){
+  ctx.save();ctx.translate(x,y);ctx.rotate(angleDeg*Math.PI/180);
+  ctx.beginPath();ctx.moveTo(0,0);ctx.bezierCurveTo(-size*.38,-size*.28,-size*.38,-size*.68,0,-size);ctx.bezierCurveTo(size*.38,-size*.68,size*.38,-size*.28,0,0);ctx.stroke();
+  ctx.globalAlpha=.33;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-size);ctx.stroke();ctx.globalAlpha=1;ctx.restore();
+}
+
+function openSaveModal(){document.getElementById('signInput').value='';document.getElementById('signModal').classList.add('open');setTimeout(()=>document.getElementById('signInput').focus(),200);}
+function closeModal(){document.getElementById('signModal').classList.remove('open');}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('signModal').classList.contains('open'))confirmSave();if(e.key==='Escape')closeModal();});
+function confirmSave(){const name=document.getElementById('signInput').value.trim();closeModal();exportFlower(name);}
+
+function exportFlower(signName){
+  const original=document.getElementById('flowerCanvas');
+  const scale=2;
+  const exp=document.createElement('canvas');
+  exp.width=original.width*scale;exp.height=original.height*scale;
+  const ctx=exp.getContext('2d');ctx.scale(scale,scale);
+  ctx.fillStyle='#f5f0e8';ctx.fillRect(0,0,original.width,original.height);
+  const W=original.width,H=original.height,cx=W/2,cy=H/2-fs.stemH/3;
+  const c=fs.color,lw=fs.effect==='bold'?2.6:1.3;
+  if(fs.effect==='sketch'){ctx.save();ctx.globalAlpha=0.022;for(let i=0;i<60;i++){ctx.beginPath();ctx.moveTo(Math.random()*W,Math.random()*H);ctx.lineTo(Math.random()*W,Math.random()*H);ctx.strokeStyle='#1a1208';ctx.lineWidth=0.3;ctx.stroke();}ctx.restore();}
+  ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=lw;
+  ctx.beginPath();ctx.moveTo(cx,cy+18);ctx.quadraticCurveTo(cx+fs.stemC,cy+fs.stemH*.6,cx-8,cy+fs.stemH);ctx.stroke();
+  drawLeaf(ctx,cx+fs.stemC*.28,cy+fs.stemH*.38,-30,fs.stemH*.24);
+  drawLeaf(ctx,cx-4,cy+fs.stemH*.64,22,fs.stemH*.19);
+  for(let i=0;i<fs.petals;i++){
+    const angle=(i/fs.petals)*Math.PI*2-Math.PI/2;
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(angle);
+    const pw=fs.size*.35,ph=fs.size*(.6+fs.open/100*.4),sp=fs.size*fs.open/100*.3,cf=fs.curve/100;
+    switch(fs.type){
+      case'rose':ctx.beginPath();ctx.moveTo(0,0);ctx.bezierCurveTo(-pw*(1+cf),-ph*.4,-sp,-ph*.9,0,-ph);ctx.bezierCurveTo(sp,-ph*.9,pw*(1+cf),-ph*.4,0,0);fs.effect==='filled'?ctx.fill():ctx.stroke();if(fs.effect==='sketch'){ctx.globalAlpha=.28;ctx.beginPath();ctx.moveTo(0,-ph*.14);ctx.lineTo(0,-ph*.84);ctx.stroke();ctx.globalAlpha=1;}break;
+      case'daisy':ctx.beginPath();ctx.ellipse(0,-ph*.52,pw*.52,ph*.52,0,0,Math.PI*2);fs.effect==='filled'?ctx.fill():ctx.stroke();break;
+      case'lotus':ctx.beginPath();ctx.moveTo(0,0);ctx.bezierCurveTo(-pw*.8,-ph*.3,-pw*.88,-ph*.7,0,-ph);ctx.bezierCurveTo(pw*.88,-ph*.7,pw*.8,-ph*.3,0,0);fs.effect==='filled'?ctx.fill():ctx.stroke();break;
+      case'tulip':ctx.beginPath();ctx.moveTo(-pw*.5,0);ctx.bezierCurveTo(-pw*(1+cf*.5),-ph*.5,-pw*.78,-ph*.9,0,-ph);ctx.bezierCurveTo(pw*.78,-ph*.9,pw*(1+cf*.5),-ph*.5,pw*.5,0);ctx.closePath();fs.effect==='filled'?ctx.fill():ctx.stroke();break;
+      case'wild':ctx.beginPath();ctx.ellipse(0,-ph*.5,pw*.4*(1+cf*.5),ph*.5,0,0,Math.PI*2);fs.effect==='filled'?ctx.fill():ctx.stroke();if(fs.effect==='sketch'){ctx.globalAlpha=.26;for(let j=0;j<3;j++){ctx.beginPath();ctx.moveTo(0,-ph*.14);ctx.lineTo((j-1)*pw*.18,-ph*.82);ctx.stroke();}ctx.globalAlpha=1;}break;
+      case'cherry':ctx.beginPath();ctx.moveTo(0,-fs.size*.08);ctx.bezierCurveTo(-pw*1.2,-ph*.32,-pw*.6,-ph*.88,0,-ph*.94);ctx.bezierCurveTo(pw*.6,-ph*.88,pw*1.2,-ph*.32,0,-fs.size*.08);fs.effect==='filled'?ctx.fill():ctx.stroke();break;
+    }
+    if(fs.effect==='dotted'){ctx.globalAlpha=.55;for(let d=0;d<28;d++){const tx=(Math.random()-.5)*pw*1.4,ty=-Math.random()*ph;ctx.beginPath();ctx.arc(tx,ty,.85,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
+    ctx.restore();
+  }
+  const cr=fs.size*.15;ctx.beginPath();ctx.arc(cx,cy,cr,0,Math.PI*2);fs.effect==='filled'?ctx.fill():ctx.stroke();
+  if(fs.effect!=='filled'){ctx.globalAlpha=.42;for(let d=0;d<10;d++){const a=(d/10)*Math.PI*2;ctx.beginPath();ctx.arc(cx+Math.cos(a)*cr*.6,cy+Math.sin(a)*cr*.6,.9,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
+  if(signName){drawSignature(ctx,signName,cx,H-14,c,true);}
+  const fname=signName?`flor-de-${signName.replace(/\s+/g,'-')}.png`:'flor.png';
+  const link=document.createElement('a');link.download=fname;link.href=exp.toDataURL('image/png');link.click();
+}
+
+function setActive(el,cls){const p=el.closest('.tool-section,.color-swatches');if(p)p.querySelectorAll('.'+cls).forEach(b=>b.classList.remove('active'));el.classList.add('active');}
+function setFlowerType(t,btn){fs.type=t;setActive(btn,'tool-btn');drawFlower();}
+function setPetalCount(v){fs.petals=+v;document.getElementById('petalCountVal').textContent=v;drawFlower();}
+function setPetalSize(v){fs.size=+v;document.getElementById('petalSizeVal').textContent=v;drawFlower();}
+function setOpen(v){fs.open=+v;document.getElementById('openVal').textContent=v;drawFlower();}
+function setCurve(v){fs.curve=+v;document.getElementById('curveVal').textContent=v;drawFlower();}
+function setColor(c,el){fs.color=c;setActive(el,'swatch');drawFlower();}
+function setEffect(e,btn){fs.effect=e;setActive(btn,'tool-btn');drawFlower();}
+function setStemHeight(v){fs.stemH=+v;document.getElementById('stemHeightVal').textContent=v;drawFlower();}
+function setStemCurve(v){fs.stemC=+v;document.getElementById('stemCurveVal').textContent=v;drawFlower();}
+function setScenario(s,btn){const wrap=document.getElementById('canvasWrap');wrap.className='creator-canvas-wrap '+(s||'');const sec=btn.closest('.tool-section');if(sec)sec.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+function randomizeFlower(){const types=['rose','daisy','lotus','tulip','wild','cherry'],effects=['sketch','bold','dotted','filled'],colors=['#1a1208','#3d2b1f','#5a3030','#7a1a1a','#2a3a2a','#4a4a2a','#8a7a60'];fs.type=types[Math.floor(Math.random()*types.length)];fs.petals=3+Math.floor(Math.random()*10);fs.size=30+Math.floor(Math.random()*90);fs.open=Math.floor(Math.random()*100);fs.curve=Math.floor(Math.random()*100);fs.effect=effects[Math.floor(Math.random()*effects.length)];fs.color=colors[Math.floor(Math.random()*colors.length)];fs.stemH=40+Math.floor(Math.random()*150);fs.stemC=Math.floor(Math.random()*80);drawFlower();}
+function clearCanvas(){document.getElementById('flowerCanvas').getContext('2d').clearRect(0,0,document.getElementById('flowerCanvas').width,document.getElementById('flowerCanvas').height);}
+window.addEventListener('resize',()=>{if(document.getElementById('creator').classList.contains('active'))setTimeout(initCreatorCanvas,100);});
+</script>
+</body>
+</html>
